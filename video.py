@@ -1,170 +1,54 @@
-## Copyright © 2023 Human Sensing Lab @ Carnegie Mellon University ##
-
+# video.py
 import os
-import torch
-import matplotlib.pyplot as plt
-from typing import NamedTuple, Sequence
-from pytorch3d.io import load_objs_as_meshes, load_obj
-import re
-import numpy as np
-from pytorch3d.structures import Meshes
 import cv2
+import torch
+import numpy as np
+from face_view_renderer import (
+    render_rgb,
+    load_mesh_center_radius,
+    find_frontal_angles,
+)
 
-from pytorch3d.vis.texture_vis import texturesuv_image_matplotlib
-from pytorch3d.renderer import (look_at_view_transform,
-    FoVPerspectiveCameras, PerspectiveCameras, PointLights, DirectionalLights, Materials, BlendParams, HardPhongShader,
-    RasterizationSettings, MeshRenderer, MeshRasterizer, SoftPhongShader, TexturesUV, TexturesVertex)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Device:", device)
 
-from pytorch3d.renderer.mesh import rasterize_meshes
-from pytorch3d.renderer.mesh.textures import Textures
+IMG_SIZE = 1024
 
-import sys
-# from plot_image_grid import image_grid
+# ---------- Video generator ----------
+def save_rotation_video(mesh_path, out_video, n_frames=80, fps=15, delta_yaw=90.0):
+    mesh, center, radius = load_mesh_center_radius(mesh_path)
+    yaw, roll = find_frontal_angles(mesh, center, radius)
+    print(f"Best yaw: {yaw:.2f}, roll: {roll:.2f}")
 
-def load_objs_as_meshes_custom(obj_filename, device):
-    verts, faces, aux = load_obj(obj_filename)
-    verts_uvs = aux.verts_uvs[None, ...]  # (1, V, 2)
-    faces_uvs = faces.textures_idx[None, ...]  # (1, F, 3)
-    tex_maps = aux.texture_images
+    os.makedirs(os.path.dirname(out_video), exist_ok=True)
 
-    # tex_maps is a dictionary of {material name: texture image}.
-    # Take the first image:
-    texture_image = list(tex_maps.values())[0]
-    texture_image = texture_image[None, ...]  # (1, H, W, 3)
+    forward = np.linspace(yaw - delta_yaw, yaw + delta_yaw, n_frames)
+    backward = np.linspace(yaw + delta_yaw, yaw - delta_yaw, n_frames)[1:-1]
+    angles = np.concatenate([forward, backward])
 
-    # Create a textures object
-    tex = Textures(verts_uvs=verts_uvs, faces_uvs=faces_uvs, maps=texture_image)
+    out = cv2.VideoWriter(out_video, cv2.VideoWriter_fourcc(*'mp4v'), fps, (IMG_SIZE, IMG_SIZE))
 
-    # Initialise the mesh with textures
-    meshes = Meshes(verts=[verts*120], faces=[faces.verts_idx], textures=tex)
+    for i, a in enumerate(angles):
+        img = render_rgb(mesh, center, radius, a, roll_deg=roll, out_size=IMG_SIZE)
+        out.write(img)
+        if i % 10 == 0:
+            print(f"Rendering frame({i})...")
 
-    return meshes.to(device)
+    out.release()
+    print(f"✅Video saved at: {out_video}")
 
-def load_objs_as_meshes_custom_sh_light(obj_filename, device):
-    verts, faces, aux = load_obj(obj_filename)
-    verts_uvs = aux.verts_uvs[None, ...]  # (1, V, 2)
-    faces_uvs = faces.textures_idx[None, ...]  # (1, F, 3)
-    tex_maps = aux.texture_images
+# ---------- Main ----------
+if __name__ == "__main__":
+    in_path = "inference_test/out_data/"
+    out_path = "inference_test/out_data/videos/"
+    os.makedirs(out_path, exist_ok=True)
 
-    # tex_maps is a dictionary of {material name: texture image}.
-    # Take the first image:
-    texture_image = list(tex_maps.values())[0]
-    texture_image = texture_image[None, ...]  # (1, H, W, 3)
+    subdirs = sorted([d for d in os.listdir(in_path) if os.path.isdir(os.path.join(in_path, d))])
 
-    # Create a textures object
-    # tex = Textures(verts_uvs=verts_uvs, faces_uvs=faces_uvs, maps=texture_image)
-
-    # Initialise the mesh with textures
-    meshes = Meshes(verts=[verts*120], faces=[faces.verts_idx], textures=tex)
-
-    # return meshes.to(device)
-    return [verts*120], [faces.verts_idx], verts_uvs, faces_uvs, texture_image
-
-
-def render_mesh_tex(mesh, device, distance=10, theta=0, light=(0,0,0)):
-
-    # mesh = load_objs_as_meshes([obj_filename], device=device)
-    # mesh = load_objs_as_meshes_custom(obj_filename, device=device)
-
-    R, T = look_at_view_transform(distance, -10, theta)
-    cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
-
-    raster_settings = RasterizationSettings(image_size=1024, blur_radius=0.0, faces_per_pixel=1, cull_backfaces=True)
-
-    blend_params=BlendParams(gamma=1, background_color=(1.0, 1.0, 1.0))
-
-    renderer = MeshRenderer(rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
-            shader=HardPhongShader(device=device, cameras=cameras, blend_params=blend_params))
-
-    images = renderer(mesh,cameras=cameras,lights=DirectionalLights(device=device, direction=(light,)))
-
-    return images
-
-
-def render_mesh_tex_ortho(obj_filename, device, theta):
-
-	mesh = load_objs_as_meshes([obj_filename], device=device)
-
-	R, T = look_at_view_transform(165, 0, theta)
-	cameras = PerspectiveCameras(device=device, R=R, T=T)
-
-	raster_settings = RasterizationSettings(image_size=1024, blur_radius=0.0, faces_per_pixel=1, cull_backfaces=True)
-
-	blend_params=BlendParams(gamma=1, background_color=(1.0, 1.0, 1.0))
-
-	renderer = MeshRenderer(rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
-			shader=HardPhongShader(device=device, cameras=cameras, blend_params=blend_params))
-
-	images = renderer(mesh,cameras=cameras,lights=DirectionalLights(device=device, direction=((0,0,0),)))
-	
-	return images
-
-
-def check_folder(path):
-	if not os.path.exists(path):
-		os.mkdir(path)
-
-def sorted_alphanumeric(data):
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
-    return sorted(data, key=alphanum_key)
-
-
-# Setup
-if torch.cuda.is_available():
-    device = torch.device("cuda:0")
-    torch.cuda.set_device(device)
-else:
-    device = torch.device("cpu")
-
-print('Device:', device)
-
-
-in_path = 'paper_samples/disp_gan/out_data_sg/'
-out_path = 'paper_samples/disp_gan/videos_sg/'
-
-size = (1024,1024)
-
-
-img_nos = os.listdir(in_path)
-img_nos.sort()
-
-
-for img_no in img_nos:
-
-    if '.png' not in img_no and '.jpg' not in img_no:
-
-        # img_no = str(img_no).zfill(6)
-        obj_file_path = os.path.join(in_path, img_no, img_no+'.obj') 
-
-        out = cv2.VideoWriter(os.path.join(out_path, img_no+'.mp4'), cv2.VideoWriter_fourcc(*'MP4V'), 90, size)
-
-        mesh = load_objs_as_meshes_custom(obj_file_path, device=device)
-        print(img_no, 'Generating video...')
-
-        for angle in range(-150,360):
-            # print(angle, end='\r')
-            image = render_mesh_tex(mesh, device, distance=40, theta=angle/10, light=(0,0,0))*255
-            out.write(cv2.cvtColor(image[0,:,:,:3].to(torch.uint8).cpu().numpy(), cv2.COLOR_BGR2RGB))
-
-        for angle in reversed(range(-150,360)):
-            # print(angle, end='\r')
-            image = render_mesh_tex(mesh, device, distance=40, theta=angle/10, light=(0,0,0))*255
-            out.write(cv2.cvtColor(image[0,:,:,:3].to(torch.uint8).cpu().numpy(), cv2.COLOR_BGR2RGB))
-
-        for angle in range(-150,360):
-            # print(angle, end='\r')
-            image = render_mesh_tex(mesh, device, distance=40, theta=angle/10, light=(0,0,0))*255
-            out.write(cv2.cvtColor(image[0,:,:,:3].to(torch.uint8).cpu().numpy(), cv2.COLOR_BGR2RGB))
-
-        for angle in reversed(range(-150,360)):
-            # print(angle, end='\r')
-            image = render_mesh_tex(mesh, device, distance=40, theta=angle/10, light=(0,0,0))*255
-            out.write(cv2.cvtColor(image[0,:,:,:3].to(torch.uint8).cpu().numpy(), cv2.COLOR_BGR2RGB))
-
-        out.release()
-
-        # print(img_no, 'Done!')
-
-
-
+    for name in subdirs:
+        mesh_path = os.path.join(in_path, name, f"{name}.obj")
+        if not os.path.exists(mesh_path):
+            continue
+        out_file = os.path.join(out_path, f"{name}.mp4")
+        print(f"🎥Processing: {name}")
+        save_rotation_video(mesh_path, out_file)
