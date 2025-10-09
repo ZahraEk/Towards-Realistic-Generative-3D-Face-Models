@@ -22,7 +22,6 @@ IMG_SIZE_DEFAULT = 1024
 def make_renderer(center, radius, azim_deg, *, elev_deg=0.0, roll_deg=0.0, image_size=IMG_SIZE_DEFAULT):
     dist = (radius / np.tan(np.deg2rad(FOV_DEG * 0.5))) * PAD
 
-    # سازگاری با [3] یا [1,3]
     if center.ndim == 1:
         center_adjusted = center.clone()[None, :]
     elif center.ndim == 2 and center.shape[0] == 1 and center.shape[1] == 3:
@@ -134,8 +133,8 @@ def save_frontal_image(mesh_path, save_path):
     img = render_rgb(mesh, center, radius, yaw, roll_deg=roll, out_size=IMG_SIZE_DEFAULT)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     cv2.imwrite(save_path, img)
-    print(f"[INFO] Best yaw: {yaw:.2f}, Best roll: {roll:.2f}")
-    print(f"[INFO] Frontal image saved at: {save_path}")
+    print(f"Best yaw: {yaw:.2f}, Best roll: {roll:.2f}")
+    print(f"Frontal image saved at: {save_path}")
     return yaw, roll
 
 def save_rotation_gif(mesh_path, out_gif, n_frames=30, fps=15, delta_yaw=45.0):
@@ -153,7 +152,7 @@ def save_rotation_gif(mesh_path, out_gif, n_frames=30, fps=15, delta_yaw=45.0):
         frames.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
     imageio.mimsave(out_gif, frames, fps=fps)
-    print(f"[INFO] Rotation GIF saved at: {out_gif}")
+    print(f"✅Rotation GIF saved at: {out_gif}")
     return out_gif
 
 def save_frontal_and_side_images(mesh_path, out_dir, side_yaw=30.0):
@@ -171,7 +170,7 @@ def save_frontal_and_side_images(mesh_path, out_dir, side_yaw=30.0):
     right_path = os.path.join(out_dir, f"{base_name}_right.png")
     cv2.imwrite(right_path, render_rgb(mesh, center, radius, yaw + side_yaw, roll_deg=roll, out_size=IMG_SIZE_DEFAULT))
   
-    print(f"[INFO] Best yaw: {yaw:.2f}, Best roll: {roll:.2f}")
+    print(f"Best yaw: {yaw:.2f}, Best roll: {roll:.2f}")
     return frontal_path, left_path, right_path, yaw, roll
 
 # ---------- CLI ----------
@@ -198,13 +197,13 @@ if __name__ == "__main__":
     frontal_path, left_path, right_path, yaw, roll = save_frontal_and_side_images(
         args.mesh, args.out_dir, side_yaw=args.side_yaw
     )
-    print("[INFO] Rendering frontal and side views...")
-    print(f"[INFO] Frontal view: {frontal_path}")
-    print(f"[INFO] Left view: {left_path}")
-    print(f"[INFO] Right view: {right_path}")
+    print("Rendering frontal and side views...")
+    print(f"✅Frontal view: {frontal_path}")
+    print(f"✅Left view: {left_path}")
+    print(f"✅Right view: {right_path}")
 
     # ---------- Rotation GIF ----------
-    print("[INFO] Rendering rotation GIF...")
+    print("Rendering rotation GIF...")
     gif_path = os.path.join(args.out_dir, f"{base_name}_rotation.gif")
     save_rotation_gif(
         args.mesh, gif_path, n_frames=args.n_frames, fps=args.fps, delta_yaw=args.delta_yaw
