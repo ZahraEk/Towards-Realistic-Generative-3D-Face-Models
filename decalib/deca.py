@@ -26,6 +26,7 @@ from .utils.util import load_obj
 from perlin_noise import rand_perlin_2d_octaves, rand_perlin_2d
 
 from img_2_tex import *
+from face_view_renderer import save_frontal_and_side_images 
 
 from .utils import lossfunc
 
@@ -444,8 +445,11 @@ class DECA(nn.Module):
             angle2 = mesh_angle(verts[0].detach().cpu().numpy(), [3572,723,3555])
             avg_ang = int((angle1+angle2)/2)
             avg_ang = 90-(360-avg_ang)
+            print(f"\n📐avg_angle = {avg_ang}°")
+
             correct_tex = tex_correction(uv_texture_gt[0].permute(1,2,0).detach().cpu(), avg_ang)
             uv_texture_gt = correct_tex.permute(2,0,1)[None,...].to('cuda')
+
 
             # uv_shading = self.render.add_SHlight(uv_detail_normals, codedict['light'])
 
@@ -620,7 +624,22 @@ class DECA(nn.Module):
                         texture=texture, 
                         uvcoords=dense_uv_coords, 
                         uvfaces=dense_faces)
-    
+
+        # ======================================================
+        # 🔹 This section was added to save frontal and side views
+        out_dir = os.path.dirname(filename)
+        base_name = os.path.splitext(os.path.basename(filename))[0]
+
+        try:
+            frontal_path, left_path, right_path, yaw, roll = save_frontal_and_side_images(
+                filename,   # use the same obj saved above
+                out_dir,
+                side_yaw=30.0   # adjust if needed
+            )
+            print(f"✅Saved frontal and side views.")
+        except Exception as e:
+            print(f"[WARN] Could not generate frontal/side images: {e}")
+        # ======================================================    
     
     def run(self, imagepath, iscrop=True):
         ''' An api for running deca given an image path
