@@ -160,4 +160,3 @@ if __name__ == '__main__':
                         help='Whether to save visualization output as separate images.')
     parser.add_argument('--use_mica', default=True, action="store_true",
                         help="Whether to use ArcFace backbone for inference.")
-    main(parser.parse_args())
