@@ -20,12 +20,12 @@ if run_this_file == 1:
     from decalib.deca import DECA
 
     image_size = 1024
-    topology_path = '/content/drive/MyDrive/Towards-Realistic-Generative-3D-Face-Models/data/head_template.obj'
+    topology_path = '/content/Towards-Realistic-Generative-3D-Face-Models/data/head_template.obj'
     uv_size = 1024
     rasterizer_type = 'pytorch3d'
     device = 'cuda'
-    savefolder = '/content/drive/MyDrive/Towards-Realistic-Generative-3D-Face-Models/inference_test/out_data/uv_tex/'
-    inputpath = '/content/drive/MyDrive/Towards-Realistic-Generative-3D-Face-Models/inference_test/in_data/'
+    savefolder = '/content/Towards-Realistic-Generative-3D-Face-Models/inference_test/out_data/uv_tex/'
+    inputpath = '/content/Towards-Realistic-Generative-3D-Face-Models/inference_test/in_data/'
     iscrop = True
     detector = 'fan'
     sample_step = 1
