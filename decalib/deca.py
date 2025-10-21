@@ -447,7 +447,7 @@ class DECA(nn.Module):
             avg_ang = 90-(360-avg_ang)
             print(f"\n📐avg_angle = {avg_ang}°")
 
-            correct_tex = tex_correction(uv_texture_gt[0].permute(1,2,0).detach().cpu(), avg_ang)
+            correct_tex, orig_tex = tex_correction(uv_texture_gt[0].permute(1,2,0).detach().cpu(), avg_ang)
             uv_texture_gt = correct_tex.permute(2,0,1)[None,...].to('cuda')
 
 
@@ -545,7 +545,7 @@ class DECA(nn.Module):
                     angle2 = mesh_angle(verts[0].detach().cpu().numpy(), [3572,723,3555])
                     avg_ang = int((angle1+angle2)/2)
                     avg_ang = 90-(360-avg_ang)
-                    correct_tex = tex_correction(uv_texture_gt[0].permute(1,2,0).detach().cpu(), avg_ang)
+                    correct_tex, orig_tex = tex_correction(uv_texture_gt[0].permute(1,2,0).detach().cpu(), avg_ang)
                     uv_texture_gt = correct_tex.permute(2,0,1)[None,...].to('cuda')
                     uv_texture_gt = uv_texture_gt[:,:3,:,:]*self.uv_face_eye_mask + (uv_texture[:,:3,:,:]*(1-self.uv_face_eye_mask))
 
