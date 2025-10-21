@@ -538,13 +538,15 @@ def check_mkdirlist(pathlist):
             print('creating %s' % path)
             os.makedirs(path)
 
-def tensor2image(tensor):
+def tensor2image(tensor, convert_to_bgr=True):
     image = tensor.detach().cpu().numpy()
-    image = image*255.
-    image = np.maximum(np.minimum(image, 255), 0)
-    image = image.transpose(1,2,0)[:,:,[2,1,0]]
+    image = image * 255.
+    image = np.clip(image, 0, 255)
+    image = image.transpose(1, 2, 0)  # [C,H,W] → [H,W,C]
+    if convert_to_bgr:
+        image = image[:, :, [2, 1, 0]]  # RGB → BGR
     return image.astype(np.uint8).copy()
-
+    
 def dict2obj(d):
     # if isinstance(d, list):
     #     d = [dict2obj(x) for x in d]
