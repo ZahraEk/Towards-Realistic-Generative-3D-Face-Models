@@ -589,8 +589,12 @@ class DECA(nn.Module):
                 new_h = int(h*size/w); new_w = size
             grids[key] = torchvision.utils.make_grid(F.interpolate(visdict[key], [new_h, new_w]).detach().cpu())
         grid = torch.cat(list(grids.values()), dim)
-        grid_image = (grid.numpy().transpose(1,2,0).copy()*255)[:,:,[2,1,0]]
-        grid_image = np.minimum(np.maximum(grid_image, 0), 255).astype(np.uint8)
+        #grid_image = (grid.numpy().transpose(1,2,0).copy()*255)[:,:,[2,1,0]]
+        #grid_image = np.minimum(np.maximum(grid_image, 0), 255).astype(np.uint8)
+        grid_image = (grid.numpy().transpose(1, 2, 0).copy() * 255)
+        grid_image = np.clip(grid_image, 0, 255).astype(np.uint8)
+        # If colors are wrong, swap BGR → RGB
+        #grid_image = grid_image[:, :, [2, 1, 0]]
         return grid_image
     
     def save_obj(self, filename, opdict, codedict):
@@ -601,11 +605,11 @@ class DECA(nn.Module):
         i = 0
         vertices = opdict['verts'][i].cpu().numpy()
         faces = self.render.faces[0].cpu().numpy()
-        texture = util.tensor2image(opdict['uv_texture_gt'][i])
+        texture = util.tensor2image(opdict['uv_texture_gt'][i], convert_to_bgr=False)
         uvcoords = self.render.raw_uvcoords[0].cpu().numpy()
         uvfaces = self.render.uvfaces[0].cpu().numpy()
         # save coarse mesh, with texture and normal map
-        normal_map = util.tensor2image(opdict['uv_detail_normals'][i]*0.5 + 0.5)
+        normal_map = util.tensor2image(opdict['uv_detail_normals'][i] * 0.5 + 0.5, convert_to_bgr=False)
         # util.write_obj(filename, vertices, faces, 
         #                 texture=texture, 
         #                 uvcoords=uvcoords, 
