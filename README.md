@@ -55,7 +55,7 @@ conda activate new_torchenv
 
 Download pre-trained models and put in the respective folders. 
 
-Follow [[MICA](https://github.com/Zielon/MICA)] to download insightface and MICA pre-trained models. Put the weights in 'insightface' and 'data/mica_pretrained' folders, respectively.
+Follow [[MICA](https://github.com/Zielon/MICA)] to download insightface and MICA pre-trained models. Put the weights in `insightface` and `data/mica_pretrained` folders, respectively.
 Follow [[DECA](https://github.com/yfeng95/DECA)] to download DECA pre-trained weights. Put them in the 'data' folder.
 
 Download AlbedoGAN modified weights from the following [[LINK](https://drive.google.com/drive/folders/1nJw8rUBTLcyhvCMTDohE_KcKKtFI6Orm?usp=sharing)]. Put these modified ArcFace backbone and DECA weights to generate better reconstruction results.
@@ -89,7 +89,7 @@ Download AlbedoGAN modified weights from the following [[LINK](https://drive.goo
 
 - ### Generate multi-pose images and Rotation GIF
   
-  This script generate frontal/side renders and rotation animations from reconstructed meshes.
+  This script generates frontal/side renders and rotation animations from reconstructed meshes.
    
    ```
   python face_view_renderer.py --mesh $input_mesh --out_dir $output_folder
@@ -217,3 +217,4 @@ If you find this code useful, please cite the original paper:
   		year={2023}
  		}
 ```
+The corresponding SymUV paper describing this fork's contributions is currently under preparation for submission. A citation entry will be added here once it is publicly available.
